@@ -66,7 +66,7 @@
 May be set using .dir-locals.el.")
 
 (defvar ffip-patterns
-  '("*.html" "*.org" "*.txt" "*.md" "*.el" "*.clj" "*.py" "*.rb" "*.js" "*.pl"
+  '("*.html" "*.org" "*.txt" "*.md" "*.el" "*.clj" "*.py" "*.rb" "*.js" "*.pl" "*.scala"
     "*.sh" "*.erl" "*.hs" "*.ml" "*.erb" "*.haml")
   "List of patterns to look for with `find-file-in-project'.")
 
@@ -83,7 +83,7 @@ Use this to exclude portions of your project: \"-not -regex \\\".*svn.*\\\"\".")
 
 This overrides variable `ffip-project-root' when set.")
 
-(defvar ffip-limit 512
+(defvar ffip-limit 8192
   "Limit results to this many files.")
 
 (defun ffip-project-root ()
@@ -118,9 +118,9 @@ directory they are found in so that they are unique."
     (mapcar (lambda (file)
               (let ((file-cons (cons (file-name-nondirectory file)
                                      (expand-file-name file))))
-                (when (assoc (car file-cons) file-alist)
-                  (ffip-uniqueify (assoc (car file-cons) file-alist))
-                  (ffip-uniqueify file-cons))
+                ;; (when (assoc (car file-cons) file-alist)
+                ;;   (ffip-uniqueify (assoc (car file-cons) file-alist))
+                ;;   (ffip-uniqueify file-cons))
                 (add-to-list 'file-alist file-cons)
                 file-cons))
             (split-string (shell-command-to-string
@@ -132,6 +132,14 @@ directory they are found in so that they are unique."
                                    ffip-find-options
                                    ffip-limit))))))
 
+(defun ffip-completing-read (prompt names)
+  "Perform a completing read over NAMES prompted by PROMPT.
+
+ido is used for the completing read if available."
+  (if (and (boundp 'ido-mode) ido-mode)
+      (ido-completing-read prompt names nil t)
+    (completing-read prompt names nil t)))
+
 ;;;###autoload
 (defun find-file-in-project ()
   "Prompt with a completing list of all files in the project to find one.
@@ -142,9 +150,13 @@ setting the variable `ffip-project-root'."
   (interactive)
   (let* ((project-files (ffip-project-files))
          (files (mapcar 'car project-files))
-         (file (if (and (boundp 'ido-mode) ido-mode)
-                   (ido-completing-read "Find file in project: " files)
-                 (completing-read "Find file in project: " files))))
+         (file-name (ffip-completing-read "Find file in project: " files))
+         (file-paths (delq 'nil (mapcar '(lambda (file-cons)
+                                           (when (string-match file-name (car file-cons))
+                                             (cdr file-cons))) project-files)))
+         (file-path (if (cdr file-paths)
+                        (ffip-completing-read "Disambiguate: " file-paths)
+                      (car file-paths))))
     (find-file (cdr (assoc file project-files)))))
 
 ;;;###autoload
