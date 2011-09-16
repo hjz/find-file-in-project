@@ -66,7 +66,7 @@
 May be set using .dir-locals.el.")
 
 (defvar ffip-patterns
-  '("*.html" "*.org" "*.txt" "*.md" "*.el" "*.clj" "*.py" "*.rb" "*.js" "*.pl" "*.scala"
+  '("*.html" "*.org" "*.txt" "*.md" "*.el" "*.clj" "*.py" "*.rb" "*.js" "*.pl" "*.scala" "*.java"
     "*.sh" "*.erl" "*.hs" "*.ml" "*.erb" "*.haml")
   "List of patterns to look for with `find-file-in-project'.")
 
@@ -82,9 +82,6 @@ Use this to exclude portions of your project: \"-not -regex \\\".*svn.*\\\"\".")
   "If non-nil, this function is called to determine the project root.
 
 This overrides variable `ffip-project-root' when set.")
-
-(defvar ffip-limit 8192
-  "Limit results to this many files.")
 
 (defun ffip-project-root ()
   "Return the root of the project."
@@ -124,13 +121,12 @@ directory they are found in so that they are unique."
                 (add-to-list 'file-alist file-cons)
                 file-cons))
             (split-string (shell-command-to-string
-                           (format "find %s -type f \\( %s \\) %s | head -n %s"
+                           (format "find %s -type f \\( %s \\) %s"
                                    (or ffip-project-root
                                        (ffip-project-root)
                                        (error "No project root found"))
                                    (ffip-join-patterns)
-                                   ffip-find-options
-                                   ffip-limit))))))
+                                   ffip-find-options))))))
 
 (defun ffip-completing-read (prompt names)
   "Perform a completing read over NAMES prompted by PROMPT.
